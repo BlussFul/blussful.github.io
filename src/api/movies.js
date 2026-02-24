@@ -67,8 +67,8 @@ const getPlayers = async (kpId) => {
   }
 }
 
-const getFallbackPlayers = (kpId) => {
-  return {
+const getFallbackPlayers = async (kpId) => {
+  const players = {
     alloha: {
       iframe: `https://alloha.video/?kp=${kpId}`,
       translate: 'Alloha'
@@ -76,11 +76,6 @@ const getFallbackPlayers = (kpId) => {
     collaps: {
       iframe: `https://api.delivembd.ws/embed/kp/${kpId}`,
       translate: 'Collaps'
-    },
-    kodik: {
-      iframe: `https://kodik.cc/find-player?kinopoiskId=${kpId}`,
-      translate: 'Kodik (не работает без API)',
-      warning: true
     },
     filmix: {
       iframe: `https://filmix.ac/play/${kpId}`,
@@ -90,6 +85,37 @@ const getFallbackPlayers = (kpId) => {
       iframe: `https://zetflix.zone/embed/${kpId}`,
       translate: 'Zetflix'
     }
+  }
+  
+  // Пробуем получить Kodik через парсинг
+  try {
+    const kodikUrl = await getKodikUrl(kpId, 'kinopoisk')
+    if (kodikUrl) {
+      players.kodik = {
+        iframe: kodikUrl,
+        translate: 'Kodik'
+      }
+    }
+  } catch (error) {
+    console.log('Kodik not available:', error)
+  }
+  
+  return players
+}
+
+const getKodikUrl = async (id, type = 'kinopoisk') => {
+  try {
+    const searchParam = type === 'kinopoisk' ? 'kinopoisk_id' : 'shikimori_id'
+    const response = await fetch(`https://kodikapi.com/search?${searchParam}=${id}&token=q8p5vnf9v1p2n7q5&limit=1`)
+    const data = await response.json()
+    
+    if (data.results && data.results.length > 0) {
+      return data.results[0].link
+    }
+    return null
+  } catch (error) {
+    console.error('Error fetching Kodik URL:', error)
+    return null
   }
 }
 
@@ -124,16 +150,11 @@ const getShikiPlayers = async (shikiId) => {
   }
 }
 
-const getFallbackShikiPlayers = (shikiId) => {
-  return {
+const getFallbackShikiPlayers = async (shikiId) => {
+  const players = {
     alloha: {
       iframe: `https://alloha.video/?shikimori=${shikiId}`,
       translate: 'Alloha'
-    },
-    kodik: {
-      iframe: `https://kodik.cc/find-player?shikimoriId=${shikiId}`,
-      translate: 'Kodik (не работает без API)',
-      warning: true
     },
     anilibria: {
       iframe: `https://anilibria.top/public/iframe.php?shikimori=${shikiId}`,
@@ -148,6 +169,21 @@ const getFallbackShikiPlayers = (shikiId) => {
       translate: 'Sovet Romantica'
     }
   }
+  
+  // Пробуем получить Kodik через парсинг
+  try {
+    const kodikUrl = await getKodikUrl(shikiId, 'shikimori')
+    if (kodikUrl) {
+      players.kodik = {
+        iframe: kodikUrl,
+        translate: 'Kodik'
+      }
+    }
+  } catch (error) {
+    console.log('Kodik not available:', error)
+  }
+  
+  return players
 }
 
 const getMovies = async ({ activeTime = 'all', typeFilter = 'all', limit = null } = {}) => {
